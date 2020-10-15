@@ -1,5 +1,5 @@
 # StyleGAN2
-This is an implementation of [Analyzing and Improving the Image Quality of StyleGAN](https://arxiv.org/abs/1912.04958) and [Differentiable Augmentation for Data-Efficient GAN Training](https://arxiv.org/abs/2006.10738) in Tensorflow 2.3, and use [AFHQ](https://github.com/clovaai/stargan-v2) dataset for training.
+This is an implementation of [Analyzing and Improving the Image Quality of StyleGAN](https://arxiv.org/abs/1912.04958) and [Differentiable Augmentation for Data-Efficient GAN Training](https://arxiv.org/abs/2006.10738) in Tensorflow 2.3 with [AFHQ](https://github.com/clovaai/stargan-v2) dataset for training.
 
 <div align = 'center'>
   <img src = 'results/gif/test.gif'>
