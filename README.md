@@ -24,7 +24,8 @@ python main.py train --dataset_name afhq                       \
                      --dataset_path ./path/to/afhq_dataset_dir \
                      --batch_size 4                            \
                      --res 512                                 \
-                     --config e
+                     --config e                                \
+                     --impl ref                                \
 ```
 
 
