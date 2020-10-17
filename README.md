@@ -33,10 +33,11 @@ python main.py train --dataset_name afhq                       \
 ### Generate image_example/transition_gif/style_mixing_example
 Use `main.py` to inference based on different mode and a given label.
 Inference mode be one of: [example, gif, mixing].
+**A pre-trained afhq model is [located here](https://drive.google.com/drive/folders/1LSEcdabnhDoJYLc3CkKjWVN6rBPnoOq4?usp=sharing).**
 
 Example usage:
 ```
-python main.py inference --ckpt ./path/to/trained_afhq_checkpoint \
+python main.py inference --ckpt ./path/to/_afhq_checkpoint        \
                          --res 512                                \
                          --num_labels 3                           \
                          --label 0                                \
