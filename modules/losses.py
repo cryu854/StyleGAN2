@@ -6,7 +6,7 @@ from modules.DiffAugment_tf import DiffAugment
 #----------------------------------------------------------------------------
 # Final loss function from "Analyzing and Improving the Image Quality of StyleGAN" 
 class ns_pathreg_r1:
-    def __init__(self, G, D, batch_size, num_labels, pl_mean, pl_batch_shrink=2, pl_decay=0.01, pl_weight=2.0, gamma=10.0):
+    def __init__(self, G, D, batch_size, num_labels, pl_mean, pl_batch_shrink=2, pl_decay=0.01, pl_weight=2.0):
         self.G = G
         self.D = D
         self.batch_size = batch_size
@@ -16,7 +16,7 @@ class ns_pathreg_r1:
         self.pl_batch_shrink = pl_batch_shrink
         self.pl_decay = pl_decay
         self.pl_weight = pl_weight
-        self.gamma = gamma
+        self.gamma = 0.0002 * (self.G.resolution ** 2) / self.batch_size # heuristic formula
 
 
     # R1 and R2 regularizers from the paper
@@ -99,12 +99,12 @@ class ns_pathreg_r1:
 # Differentiable Augmentation for Data-Efficient GAN Training
 # Shengyu Zhao, Zhijian Liu, Ji Lin, Jun-Yan Zhu, and Song Han
 class ns_DiffAugment_r1:
-    def __init__(self, G, D, batch_size, policy='color,translation,cutout', gamma=10.0):
+    def __init__(self, G, D, batch_size, policy='color,translation,cutout'):
         self.G = G
         self.D = D
         self.batch_size = batch_size
         self.policy = policy
-        self.gamma = gamma
+        self.gamma = 0.0002 * (self.G.resolution ** 2) / self.batch_size # heuristic formula
 
 
     @tf.function

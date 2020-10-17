@@ -39,8 +39,8 @@ class Trainer:
         self.train_dataset, self.num_labels = self.create_dataset(dataset_path)
         self.D, self.G, self.Gs = self.build_model()
         self.loss_func, self.pl_mean = self.create_loss_func()
-        self.G_opt = Adam(learning_rate=0.002*G_mb_ratio, beta_1=0.0**G_mb_ratio, beta_2=0.99**G_mb_ratio, epsilon=1e-8)
-        self.D_opt = Adam(learning_rate=0.002*D_mb_ratio, beta_1=0.0**D_mb_ratio, beta_2=0.99**D_mb_ratio, epsilon=1e-8)
+        self.G_opt = Adam(learning_rate=0.0025*G_mb_ratio, beta_1=0.0**G_mb_ratio, beta_2=0.99**G_mb_ratio, epsilon=1e-8)
+        self.D_opt = Adam(learning_rate=0.0025*D_mb_ratio, beta_1=0.0**D_mb_ratio, beta_2=0.99**D_mb_ratio, epsilon=1e-8)
 
         """ Misc """
         self.step = tf.Variable(name='step', initial_value=0, trainable=False, dtype=tf.int32)
@@ -119,15 +119,14 @@ class Trainer:
 
     def create_loss_func(self):
         """ Create loss function and initial pl_mean value. """
-        gamma = 10.0 if self.config == 'f' else 100.0
         pl_mean = tf.Variable(name='pl_mean', initial_value=0.0, trainable=False, dtype=tf.float32)
         
         if self.dataset_name in ['ffhq', 'afhq']:
             """ Use StyleGAN2 final loss function. (Non-saturation logistic loss + r1 reg + pathlength reg) """
-            loss_func = ns_pathreg_r1(self.G, self.D, self.batch_size, self.num_labels, pl_mean=pl_mean, gamma=gamma)
+            loss_func = ns_pathreg_r1(self.G, self.D, self.batch_size, self.num_labels, pl_mean=pl_mean)
         else:
             """ Use DiffAugment to expand custom dataset. (Non-saturation logistic loss + r1 reg) """
-            loss_func = ns_DiffAugment_r1(self.G, self.D, self.batch_size, policy='color,translation,cutout', gamma=gamma)
+            loss_func = ns_DiffAugment_r1(self.G, self.D, self.batch_size, policy='color,translation,cutout')
         return loss_func, pl_mean
 
 
