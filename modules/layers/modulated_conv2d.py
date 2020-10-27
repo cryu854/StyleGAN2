@@ -31,15 +31,15 @@ class modulated_conv2d(tf.keras.layers.Layer):
         weight_shape = [self.kernel_size, self.kernel_size, x_shape[-1], self.filters]
         init_std, self.runtime_coef = get_runtime_coef(self.lr_mul, weight_shape)    
 
-        self.fully_connected = fully_connected(units=x_shape[-1], apply_lrelu=False)
+        self.fully_connected = fully_connected(units=x_shape[-1], apply_lrelu=False, name='modulate')
 
-        self.w = self.add_weight(name='mod_w',
+        self.w = self.add_weight(name='w',
                                  shape=weight_shape,
                                  dtype=tf.float32,
                                  initializer=tf.random_normal_initializer(0, init_std),
                                  trainable=True)
         if self.apply_bias:
-            self.b = self.add_weight(name='mod_b',
+            self.b = self.add_weight(name='b',
                                      shape=(self.filters),
                                      dtype=tf.float32,
                                      initializer=tf.zeros_initializer(),

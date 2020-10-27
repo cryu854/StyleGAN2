@@ -1,7 +1,8 @@
 """ USAGE
 python main.py train --dataset_name afhq --dataset_path ./path/to/afhq_dataset_dir --batch_size 4 --res 512 --config e
 
-python main.py inference --ckpt ./path/to/trained_checkpoint_dir --res 512 --num_labels 3 --config e
+python main.py inference --ckpt ./ffhq/official_1024x1024 --res 1024 --config f --mode gif
+python main.py inference --ckpt ./afhq/checkpoint_512x512 --res 512 --config e --num_labels 3 --mode gif
  """
 import os
 import argparse
@@ -21,7 +22,7 @@ def main():
     parser.add_argument('--batch_size', help='Training batch size', type=int, default=4)
     parser.add_argument('--res', help='Resolution of image', type=int, default=1024)
     parser.add_argument('--total_img', help='Training length of images', type=int, default=25000000)
-    parser.add_argument('--ckpt', help='Checkpoints directory', type=str, default='./checkpoint')
+    parser.add_argument('--ckpt', help='Checkpoints/Weights directory', type=str, default='./checkpoint')
     parser.add_argument('--num_labels', help='Number of labels', type=int, default=0)
     parser.add_argument('--label', help='Inference label', type=int, default=0)
     parser.add_argument('--truncation_psi', help='Inference truncation psi', type=float, default=0.5)
@@ -72,11 +73,12 @@ def main():
         elif args.mode == 'gif':
             inferencer.generate_gif(label=args.label) 
         elif args.mode == 'mixing':
-            inferencer.style_mixing_example(row_seeds=[85,112,65,1188], col_seeds=[10,821,1789,293], col_styles=[0,1,2,3,4,5,6], label=args.label)
-
+            inferencer.style_mixing_example(row_seeds=[85,100,75,1500], col_seeds=[55,821,1780,293], col_styles=[0,1,2,3,4,5,6], label=args.label)
+            # afhq seeds to generate result like README.md: row_seeds=[85,112,65,1188], col_seeds=[10,821,1780,293]
+            # ffhq seeds to generate result like README.md: row_seeds=[85,100,75,1500], col_seeds=[55,821,1789,293]
 
     else:
-        print('Example usage : python main.py inference --ckpt ./afhq/checkpoint_512x512 --res 512 --num_labels 3 --config e')
+        print('Example usage : python main.py inference --ckpt ./ffhq/official_1024x1024 --res 1024 --config f')
         
 
 if __name__ == '__main__':

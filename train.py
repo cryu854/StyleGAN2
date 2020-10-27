@@ -3,9 +3,9 @@ import numpy as np
 import time
 import os
 
+from utils import imsave
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import Mean
-from utils import imsave
 from modules.generator import generator
 from modules.discriminator import discriminator
 from modules.losses import ns_pathreg_r1, ns_DiffAugment_r1
@@ -45,7 +45,7 @@ class Trainer:
         """ Misc """
         self.step = tf.Variable(name='step', initial_value=0, trainable=False, dtype=tf.int32)
         self.elapsed_time = tf.Variable(name='elapsed_time', initial_value=0, trainable=False, dtype=tf.int32)
-        self.create_summary()
+        self.create_summary(checkpoint_path)
         self.print_step = 100
         self.save_step = 1000
         self.ckpt = tf.train.Checkpoint(step=self.step,
@@ -204,13 +204,11 @@ class Trainer:
         return G_loss, D_loss
 
 
-    def create_summary(self):
+    def create_summary(self, checkpoint_path):
         """ Create metrics and tensorboard summary writer. """
-        import datetime
         self.G_loss_metrics = Mean()
         self.D_loss_metrics = Mean()
-        self.summary_writer = tf.summary.create_file_writer(
-            'log/fit/' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+        self.summary_writer = tf.summary.create_file_writer(f'{checkpoint_path}/logs/fit')
 
 
     def update_summary(self, metrics, step, time):
@@ -228,3 +226,6 @@ class Trainer:
               f'Time: {time}, ',
               f'G_loss: {self.G_loss_metrics.result():.2f}, ',
               f'D_loss: {self.D_loss_metrics.result():.2f}, ')
+
+        self.G_loss_metrics.reset_states()
+        self.D_loss_metrics.reset_states()

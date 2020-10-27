@@ -14,13 +14,14 @@ from modules.layers.ops.upfirdn_2d import upsample_2d
 # Layers for generator
 
 class get_constant(Layer):
-    def __init__(self, initial_value, trainable=True, **kwargs):
+    def __init__(self, **kwargs):
         super(get_constant, self).__init__(**kwargs)
-        self.constant = tf.Variable(name=self.name,
-                                    initial_value=initial_value,
-                                    dtype=tf.float32,
-                                    trainable=trainable)
-
+        self.constant = self.add_weight(name=self.name,
+                                        shape=[1, 4, 4, 512],
+                                        dtype=tf.float32,
+                                        initializer=tf.random_normal_initializer(0, 1.0),
+                                        trainable=True)
+        
     def call(self, inputs, training=None):
         batch_size = tf.shape(inputs)[0]
         return tf.tile(self.constant, [batch_size, 1, 1, 1])
@@ -49,17 +50,20 @@ class noise_injection(Layer):
     def __init__(self, randomize_noise, **kwargs):
         super(noise_injection, self).__init__(**kwargs)
         self.randomize_noise = randomize_noise
-        self.noise_strength = tf.Variable(name='noise_strength',
-                                          initial_value=0.0,
-                                          dtype=tf.float32,
-                                          trainable=True)
+
     def build(self, input_shape):
         self.noise_shape = input_shape
+        self.noise_strength = self.add_weight(name='noise_strength',
+                                              shape=[],
+                                              dtype=tf.float32,
+                                              initializer=tf.zeros_initializer(),
+                                              trainable=True)
         if self.randomize_noise is not True:
-            self.noise = tf.Variable(name='noise',
-                                     initial_value=tf.random.normal([1, self.noise_shape[1], self.noise_shape[2], 1]),
-                                     dtype=tf.float32,
-                                     trainable=False)
+            self.noise = self.add_weight(name='noise',
+                                         shape=[1, self.noise_shape[1], self.noise_shape[2], 1],
+                                         dtype=tf.float32,
+                                         initializer=tf.random_normal_initializer(0, 1.0),
+                                         trainable=False)
                                      
     def call(self, inputs, training=None):
         if self.randomize_noise:
@@ -73,7 +77,6 @@ class noise_injection(Layer):
 class gen_block(Layer):
     def __init__(self, filters, randomize_noise, up=False, impl='ref', **kwargs):
         super(gen_block, self).__init__(**kwargs)
-        self.up = up
         self.modulated_conv2d = modulated_conv2d(filters=filters, kernel_size=3, up=up, impl=impl)
         self.noise_injection = noise_injection(randomize_noise)
         self.scaled_lrelu = scaled_lrelu(alpha=0.2)
@@ -126,14 +129,14 @@ class generator(Model):
         if num_labels > 0:
             z_latents = label_embedding(name='label_embedding')([z_latents, labesls])
         x = Lambda(lambda x: x * tf.math.rsqrt(tf.reduce_mean(tf.square(x), axis=-1, keepdims=True) + 1e-8), name='pixel_norm')(z_latents)
+        x = fully_connected(512, lr_mul=0.01, name='fc0')(x)
         x = fully_connected(512, lr_mul=0.01, name='fc1')(x)
         x = fully_connected(512, lr_mul=0.01, name='fc2')(x)
         x = fully_connected(512, lr_mul=0.01, name='fc3')(x)
         x = fully_connected(512, lr_mul=0.01, name='fc4')(x)
         x = fully_connected(512, lr_mul=0.01, name='fc5')(x)
         x = fully_connected(512, lr_mul=0.01, name='fc6')(x)
-        x = fully_connected(512, lr_mul=0.01, name='fc7')(x)
-        w_latents = fully_connected(512, lr_mul=0.01, name='fc8')(x)
+        w_latents = fully_connected(512, lr_mul=0.01, name='fc7')(x)
         broadcasted_latents = Lambda(lambda x: tf.tile(x[:, tf.newaxis, :], [1, self.num_layers, 1]), name='broadcast_latents')(w_latents)
 
         latents_out = broadcasted_latents
@@ -156,14 +159,14 @@ class generator(Model):
         latents_in = Input(shape=(self.num_layers, 512), name='latents_in')
         w_latents = latents_in
 
-        constant = get_constant(initial_value=tf.random.normal([1, 4, 4, 512]), name='constant')(w_latents)
+        constant = get_constant(name='constant')(w_latents)
         x = gen_block(filters=512, randomize_noise=randomize_noise, impl=impl, name='4x4')([constant, w_latents[:, 0]])
-        y = modulated_conv2d(filters=3, kernel_size=1, demodulate=False, impl=impl, name='to_rgb_4x4')([x, w_latents[:, 1]])
+        y = modulated_conv2d(filters=3, kernel_size=1, demodulate=False, impl=impl, name='4x4_ToRGB')([x, w_latents[:, 1]])
         for index, (res, fmaps) in enumerate(list(filters.items())[1:self.res_log2-1]):
-            x = gen_block(filters=fmaps, randomize_noise=randomize_noise, up=True, impl=impl, name=f'up_{res}x{res}')([x, w_latents[:, index*2+1]])
+            x = gen_block(filters=fmaps, randomize_noise=randomize_noise, up=True, impl=impl, name=f'{res}x{res}_up')([x, w_latents[:, index*2+1]])
             x = gen_block(filters=fmaps, randomize_noise=randomize_noise, impl=impl, name=f'{res}x{res}')([x, w_latents[:, index*2+2]])
-            y = Lambda(lambda x: upsample_2d(x, k=[1,3,3,1], data_format='NHWC', impl=impl), name=f'img_up_{res}x{res}')(y)
-            y += modulated_conv2d(filters=3, kernel_size=1, demodulate=False, impl=impl, name=f'to_rgb_{res}x{res}')([x, w_latents[:, index*2+3]])
+            y = Lambda(lambda x: upsample_2d(x, k=[1,3,3,1], data_format='NHWC', impl=impl), name=f'{res}x{res}_img_up')(y)
+            y += modulated_conv2d(filters=3, kernel_size=1, demodulate=False, impl=impl, name=f'{res}x{res}_ToRGB')([x, w_latents[:, index*2+3]])
         
         images_out = y
         return Model(inputs=[latents_in], outputs=[images_out], name=name)
