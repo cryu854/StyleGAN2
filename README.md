@@ -8,12 +8,13 @@ This is an implementation of [Analyzing and Improving the Image Quality of Style
 
 
 ## Style mixing examples
-Check the ./results folder to see more images.
-<div align = 'center'>
-  <img src = 'results/mixing/ffhq.png' height = '360px'>
-  <img src = 'results/mixing/cat.png' height = '360px'>
-</div>
 
+Check the [./results](https://github.com/cryu854/StyleGAN2/tree/main/results) folder to see more images.
+
+<div align = 'center'>
+  <img src='results/mixing/ffhq.png' height = '380px'>
+  <img src='results/mixing/cat.png' height = '380px'>
+</div>
 
 ## Training
 Use `main.py` to train a StyleGAN2 based on given dataset.
