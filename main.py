@@ -1,8 +1,8 @@
 """ USAGE
 python main.py train --dataset_name afhq --dataset_path ./path/to/afhq_dataset_dir --batch_size 4 --res 512 --config e
 
-python main.py inference --ckpt ./ffhq/official_1024x1024 --res 1024 --config f --mode gif
-python main.py inference --ckpt ./afhq/checkpoint_512x512 --res 512 --config e --num_labels 3 --mode gif
+python main.py inference --ckpt ./weights-ffhq/official_1024x1024 --res 1024 --config f --mode gif
+python main.py inference --ckpt ./weights-afhq/checkpoint_512x512 --res 512 --config e --num_labels 3 --label 1 --mode gif
  """
 import os
 import argparse
@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--impl', help="(Faster)Custom op use:'cuda'; (Slower)Tensorflow op use:'ref'", type=str, default='ref', choices=['ref','cuda'])
     parser.add_argument('--config', help="Model's config be one of: 'e', 'f'", type=str, default='f')
     parser.add_argument('--dataset_name', help="Specific dataset be one of: 'ffhq', 'afhq', 'custom'", type=str, default='afhq', choices=['ffhq','afhq','custom'])
-    parser.add_argument('--dataset_path', help='Dataset directory', default='./../../datasets/afhq/train_labels')
+    parser.add_argument('--dataset_path', help='Dataset directory', type=str, default='./../../datasets/afhq/train_labels')
     parser.add_argument('--batch_size', help='Training batch size', type=int, default=4)
     parser.add_argument('--res', help='Resolution of image', type=int, default=1024)
     parser.add_argument('--total_img', help='Training length of images', type=int, default=25000000)
@@ -73,12 +73,13 @@ def main():
         elif args.mode == 'gif':
             inferencer.generate_gif(label=args.label) 
         elif args.mode == 'mixing':
-            inferencer.style_mixing_example(row_seeds=[85,100,75,1500], col_seeds=[55,821,1780,293], col_styles=[0,1,2,3,4,5,6], label=args.label)
-            # afhq seeds to generate result like README.md: row_seeds=[85,112,65,1188], col_seeds=[10,821,1780,293]
-            # ffhq seeds to generate result like README.md: row_seeds=[85,100,75,1500], col_seeds=[55,821,1789,293]
+            inferencer.style_mixing_example(row_seeds=[36,78,90,1209], col_seeds=[801,145,51,228], col_styles=[0,1,2,3,4,5,6], label=args.label)
+            # afhq seeds to generate grid like README.md: row_seeds=[85,112,65,1188], col_seeds=[10,821,1780,293]
+            # ffhq seeds to generate grid like README.md: row_seeds=[36,78,90,1209], col_seeds=[801,145,51,228]
+
 
     else:
-        print('Example usage : python main.py inference --ckpt ./ffhq/official_1024x1024 --res 1024 --config f')
+        print('Example usage : python main.py inference --ckpt ./weights-ffhq/official_1024x1024 --res 1024 --config f')
         
 
 if __name__ == '__main__':

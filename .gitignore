@@ -5,6 +5,9 @@ cal_metrics.py
 convert.py
 convert
 checkpoint
+weights-afhq
+weights-ffhq
+weights-lpips
 custom
 ffhq
 afhq
