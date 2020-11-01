@@ -1,24 +1,26 @@
 # StyleGAN2
-This is an implementation of [Analyzing and Improving the Image Quality of StyleGAN](https://arxiv.org/abs/1912.04958) and [Differentiable Augmentation for Data-Efficient GAN Training](https://arxiv.org/abs/2006.10738) in Tensorflow 2.3 with [AFHQ](https://github.com/clovaai/stargan-v2) dataset for training.
+This is an implementation of [Analyzing and Improving the Image Quality of StyleGAN](https://arxiv.org/abs/1912.04958) and [Differentiable Augmentation for Data-Efficient GAN Training](https://arxiv.org/abs/2006.10738) in Tensorflow 2.3.
 
 <div align = 'center'>
-  <img src = 'results/gif/test.gif'>
+  <img src = 'results/gif/test_ffhq.gif' height = '256px'>
+  <img src = 'results/gif/test_afhq.gif' height = '256px'>
 </div>
 
 
 ## Style mixing examples
-<div align = 'center'>
-  <img src = 'results/mixing/cat.png' height = '480px'>
-  <img src = 'results/mixing/dog.png' height = '480px'>
-  <img src = 'results/mixing/wild.png' height = '480px'>
-</div>
 
+Check the [./results](https://github.com/cryu854/StyleGAN2/tree/main/results) folder to see more images.
+
+<div align = 'center'>
+  <img src='results/mixing/ffhq.png' height = '380px'>
+  <img src='results/mixing/cat.png' height = '380px'>
+</div>
 
 ## Training
 Use `main.py` to train a StyleGAN2 based on given dataset.
 Training takes 80s(CUDA op)/110s(Tensorflow op) for 100 steps(batch_size=4) on a GTX 1080ti.
 
-Example usage:
+Example usage for training on afhq-dataset:
 ```
 python main.py train --dataset_name afhq                       \
                      --dataset_path ./path/to/afhq_dataset_dir \
@@ -31,25 +33,23 @@ python main.py train --dataset_name afhq                       \
 
 ## Inference
 ### Generate image_example/transition_gif/style_mixing_example
-Use `main.py` to inference based on different mode and a given label.
+Use `main.py` to do inference on different mode and a given label.
 Inference mode be one of: [example, gif, mixing].
-**A pre-trained afhq model is [located here](https://drive.google.com/drive/folders/1LSEcdabnhDoJYLc3CkKjWVN6rBPnoOq4?usp=sharing).**
+**The pre-trained ffhq/afhq weights are [located here](https://drive.google.com/drive/folders/1LSEcdabnhDoJYLc3CkKjWVN6rBPnoOq4?usp=sharing).**
 
 Example usage:
 ```
-python main.py inference --ckpt ./path/to/_afhq_checkpoint        \
-                         --res 512                                \
-                         --num_labels 3                           \
-                         --label 0                                \
-                         --config e                               \
-                         --truncation_psi 0.5                     \
-                         --mode example                           \
+python main.py inference --ckpt ./weights-ffhq/official_1024x1024  \
+                         --res 1024                                \
+                         --config f                                \
+                         --truncation_psi 0.5                      \
+                         --mode example                            \
 ```
 
 
 
 ## Todo
-- [ ] Add inference_official_weights.py to exploit official trained model.
+- [x] Add FFHQ official-weights inference feature.
 - [ ] Add metrics.py to compute PPL and FID.
 - [ ] Train a model based on custom dataset with DiffAugment method.
 
