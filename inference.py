@@ -27,16 +27,16 @@ class Inferencer:
         self.ckpt.restore(tf.train.latest_checkpoint(checkpoint_path)).expect_partial()
   
 
-    def genetate_example(self, num_example, label=None):
+    def genetate_example(self, num_examples, batch_size=1, label=None):
         create_dir(f'{self.result_path}/example')
-        latents = tf.random.normal([num_example, 512])
-        labels_indice = [label]*num_example if label is not None else tf.random.uniform([num_example], 0, self.num_labels, dtype=tf.int32)
-        labels = tf.one_hot(labels_indice, self.num_labels) if self.num_labels > 0 else tf.zeros([num_example, 0], tf.float32)
-
         print('Generating images...')
-        images = self.Gs([latents, labels], self.truncation_psi, training=False)
-        for idx, (image, label) in enumerate(zip(images, labels_indice)):
-            imsave(image, f'{self.result_path}/example/{idx}_label-{label}.jpg')
+        for begin in range(0, num_examples, batch_size):
+            latents = tf.random.normal([batch_size, 512])
+            labels_indice = [label]*batch_size if label is not None else tf.random.uniform([batch_size], 0, self.num_labels, dtype=tf.int32)
+            labels = tf.one_hot(labels_indice, self.num_labels) if self.num_labels > 0 else tf.zeros([batch_size, 0], tf.float32)
+            images = self.Gs([latents, labels], self.truncation_psi, training=False)
+            for idx, (image, label) in enumerate(zip(images, labels_indice)):
+                imsave(image, f'{self.result_path}/example/{begin+idx}_label-{label}.jpg')
 
 
     def style_mixing_example(self, row_seeds, col_seeds, label=None, col_styles='0-6'):

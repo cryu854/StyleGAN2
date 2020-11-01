@@ -69,7 +69,7 @@ def main():
 
         inferencer = Inferencer(**parameters)
         if args.mode == 'example':
-            inferencer.genetate_example(num_example=10, label=args.label)
+            inferencer.genetate_example(num_examples=10, label=args.label)
         elif args.mode == 'gif':
             inferencer.generate_gif(label=args.label) 
         elif args.mode == 'mixing':
