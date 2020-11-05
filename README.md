@@ -47,10 +47,30 @@ python main.py inference --ckpt ./weights-ffhq/official_1024x1024  \
 ```
 
 
+## Metric
+### Calculate quality metric for StyleGAN2
+Use `cal_metrics.py` to calculate PPL/FID score.
+The pre-trained [LPIPS](https://arxiv.org/abs/1801.03924)'s weights(standard metric to estimate perceptual similarity) used in PPL will be downloaded automatically from [here](https://drive.google.com/drive/folders/1LSEcdabnhDoJYLc3CkKjWVN6rBPnoOq4?usp=sharing).
+
+Evaluation time and results for the pre-trained FFHQ generator using one GTX 1080ti. 
+| Metric    | Time      | Result   | Description
+| :-----    | :---      | :-----   | :----------
+| fid50k    | 1.5 hours | 3.096    | [Fr&eacute;chet Inception Distance using](https://arxiv.org/abs/1706.08500) 50,000 images.
+| ppl_wend  | 2.5 hours | 144.044  | Perceptual Path Length for endpoints in *W*.
+
+Example usage:
+```
+python cal_metrics.py --ckpt ./weights-ffhq/official_1024x1024  \
+                      --res 1024                                \
+                      --config f                                \
+                      --mode fid                                \
+                      --dataset './datasets/ffhq'               \
+```
+
 
 ## Todo
 - [x] Add FFHQ official-weights inference feature.
-- [ ] Add metrics.py to compute PPL and FID.
+- [x] Add metrics.py to compute PPL and FID.
 - [ ] Train a model based on custom dataset with DiffAugment method.
 
 
@@ -64,3 +84,5 @@ You will need the following to run the above:
 - Most of the code/CUDA are based on the [official implementation](https://github.com/NVlabs/stylegan2).
 - The code of modules/DiffAugment_tf.py is from [data-efficient-gans](https://github.com/mit-han-lab/data-efficient-gans).
 - The AFHQ training dataset is from [stargan-v2](https://github.com/clovaai/stargan-v2).
+- The pre-trained FFHQ generator's weights were convered from [stylegan2-ffhq-config-f.pkl](https://nvlabs-fi-cdn.nvidia.com/stylegan2/networks/stylegan2-ffhq-config-f.pkl)
+- The pre-trained LPIPS's weights used in PPL were converted from [vgg16_zhang_perceptual.pkl](https://drive.google.com/uc?id=1N2-m9qszOeVC9Tq77WxsLnuWwOedQiD2).
