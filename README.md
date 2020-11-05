@@ -58,7 +58,7 @@ Evaluation time and results for the pre-trained FFHQ generator using one GTX 108
 | fid50k    | 1.5 hours | 3.096    | [Fr&eacute;chet Inception Distance using](https://arxiv.org/abs/1706.08500) 50,000 images.
 | ppl_wend  | 2.5 hours | 144.044  | Perceptual Path Length for endpoints in *W*.
 
-Example usage:
+Example usage for FID evaluation:
 ```
 python cal_metrics.py --ckpt ./weights-ffhq/official_1024x1024  \
                       --res 1024                                \
@@ -84,5 +84,5 @@ You will need the following to run the above:
 - Most of the code/CUDA are based on the [official implementation](https://github.com/NVlabs/stylegan2).
 - The code of modules/DiffAugment_tf.py is from [data-efficient-gans](https://github.com/mit-han-lab/data-efficient-gans).
 - The AFHQ training dataset is from [stargan-v2](https://github.com/clovaai/stargan-v2).
-- The pre-trained FFHQ generator's weights were convered from [stylegan2-ffhq-config-f.pkl](https://nvlabs-fi-cdn.nvidia.com/stylegan2/networks/stylegan2-ffhq-config-f.pkl)
+- The pre-trained FFHQ generator's weights were convered from [stylegan2-ffhq-config-f.pkl](https://nvlabs-fi-cdn.nvidia.com/stylegan2/networks/stylegan2-ffhq-config-f.pkl).
 - The pre-trained LPIPS's weights used in PPL were converted from [vgg16_zhang_perceptual.pkl](https://drive.google.com/uc?id=1N2-m9qszOeVC9Tq77WxsLnuWwOedQiD2).
