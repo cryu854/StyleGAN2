@@ -23,7 +23,6 @@ def calculate_metric(generator, num_labels, mode, dataset_path):
     fid50k_full_parameters = {'num_images':50000, 'num_labels':num_labels , 'batch_size':8}
     ppl_wend_parameters =  {'num_images':50000, 'num_labels':num_labels, 'epsilon':1e-4, 'space':'w', 'sampling':'end', 'crop':False, 'batch_size':2}
 
-    start = time.perf_counter()
     if mode == 'fid':
         assert os.path.exists(dataset_path), 'Error: Dataset does not exist.'
         fid = FID(**fid50k_full_parameters)
@@ -31,7 +30,6 @@ def calculate_metric(generator, num_labels, mode, dataset_path):
     else: # mode == 'ppl'
         ppl = PPL(**ppl_wend_parameters)
         dist = ppl.evaluate(generator)
-    print(f'Time taken for {mode} evaluation: {round(time.perf_counter()-start)}s')
     return dist
 
 
@@ -60,9 +58,11 @@ def main():
             'randomize_noise' : False,
             }
     Gs = get_generator(**Gs_parameters)
+
+    start = time.perf_counter()
     dist = calculate_metric(Gs, args.num_labels, args.mode.lower(), args.dataset)
     print(f'{args.mode} : {dist:.3f}')
-
+    print(f'Time taken for evaluation: {round(time.perf_counter()-start)}s')
 
 if __name__ == '__main__':
     main()
