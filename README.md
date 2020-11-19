@@ -2,8 +2,8 @@
 This is an implementation of [Analyzing and Improving the Image Quality of StyleGAN](https://arxiv.org/abs/1912.04958) and [Differentiable Augmentation for Data-Efficient GAN Training](https://arxiv.org/abs/2006.10738) in Tensorflow 2.3.
 
 <div align = 'center'>
-  <img src = 'results/gif/test_ffhq.gif' height = '256px'>
-  <img src = 'results/gif/test_afhq.gif' height = '256px'>
+  <img src = 'results/gif/test_ffhq.gif' height = '240px'>
+  <img src = 'results/gif/test_afhq.gif' height = '240px'>
 </div>
 
 
@@ -55,7 +55,7 @@ The pre-trained [LPIPS](https://arxiv.org/abs/1801.03924)'s weights(standard met
 Evaluation time and results for the pre-trained FFHQ generator using one GTX 1080ti. 
 | Metric    | Time      | Result   | Description
 | :-----    | :---      | :-----   | :----------
-| fid50k    | 1.5 hours | 3.096    | [Fr&eacute;chet Inception Distance using](https://arxiv.org/abs/1706.08500) 50,000 images.
+| fid50k    | 1.5 hours | 3.096    | [Fr&eacute;chet Inception Distance](https://arxiv.org/abs/1706.08500) using 50,000 images.
 | ppl_wend  | 2.5 hours | 144.044  | Perceptual Path Length for endpoints in *W*.
 
 Example usage for FID evaluation:
