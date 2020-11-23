@@ -53,18 +53,17 @@ class noise_injection(Layer):
 
     def build(self, input_shape):
         self.noise_shape = input_shape
+        self.noise = self.add_weight(name='noise',
+                                     shape=[1, self.noise_shape[1], self.noise_shape[2], 1],
+                                     dtype=tf.float32,
+                                     initializer=tf.random_normal_initializer(0, 1.0),
+                                     trainable=False)
         self.noise_strength = self.add_weight(name='noise_strength',
                                               shape=[],
                                               dtype=tf.float32,
                                               initializer=tf.zeros_initializer(),
                                               trainable=True)
-        if self.randomize_noise is not True:
-            self.noise = self.add_weight(name='noise',
-                                         shape=[1, self.noise_shape[1], self.noise_shape[2], 1],
-                                         dtype=tf.float32,
-                                         initializer=tf.random_normal_initializer(0, 1.0),
-                                         trainable=False)
-                                     
+
     def call(self, inputs, training=None):
         if self.randomize_noise:
             noise = tf.random.normal([tf.shape(inputs)[0], self.noise_shape[1], self.noise_shape[2], 1])
@@ -101,7 +100,7 @@ class generator(Model):
                  impl='ref',
                  randomize_noise=True,
                  w_avg_beta=0.995,
-                 style_mixing_prob=0.9, # 0.9 for f, 0.5 for e
+                 style_mixing_prob=0.9,
                  **kwargs):
         super(generator, self).__init__(**kwargs)
         self.resolution = resolution

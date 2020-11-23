@@ -6,6 +6,7 @@ import os
 from utils import imsave
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import Mean
+from modules.metrics import FID, PPL
 from modules.generator import generator
 from modules.discriminator import discriminator
 from modules.losses import ns_pathreg_r1, ns_DiffAugment_r1
@@ -21,6 +22,9 @@ class Trainer:
                  dataset_path='./../../datasets/afhq/train_labels',
                  checkpoint_path='./checkpoint',
                  impl='ref',
+                 save_step=5000,
+                 print_step=100,
+                 metric_step=0,
                  **kwargs):
         
         """ Training parameters. """
@@ -36,18 +40,20 @@ class Trainer:
         D_mb_ratio = self.D_reg_interval / (self.D_reg_interval + 1)
     
         """ Training objects. """
-        self.train_dataset, self.num_labels = self.create_dataset(dataset_path)
+        self.dataset_path = dataset_path
+        self.train_dataset, self.num_labels = self.create_dataset()
         self.D, self.G, self.Gs = self.build_model()
         self.loss_func, self.pl_mean = self.create_loss_func()
         self.G_opt = Adam(learning_rate=0.0025*G_mb_ratio, beta_1=0.0**G_mb_ratio, beta_2=0.99**G_mb_ratio, epsilon=1e-8)
         self.D_opt = Adam(learning_rate=0.0025*D_mb_ratio, beta_1=0.0**D_mb_ratio, beta_2=0.99**D_mb_ratio, epsilon=1e-8)
 
         """ Misc """
+        self.save_step = save_step
+        self.print_step = print_step
+        self.metric_step = metric_step
         self.step = tf.Variable(name='step', initial_value=0, trainable=False, dtype=tf.int32)
         self.elapsed_time = tf.Variable(name='elapsed_time', initial_value=0, trainable=False, dtype=tf.int32)
         self.create_summary(checkpoint_path)
-        self.print_step = 100
-        self.save_step = 1000
         self.ckpt = tf.train.Checkpoint(step=self.step,
                                         elapsed_time=self.elapsed_time,
                                         generator=self.G,
@@ -71,7 +77,7 @@ class Trainer:
         """ Build initial model """
         D = discriminator(self.resolution, self.num_labels, self.config, self.impl)
         G = generator(self.resolution, self.num_labels, self.config, self.impl)
-        Gs = generator(self.resolution, self.num_labels, self.config, self.impl)
+        Gs = generator(self.resolution, self.num_labels, self.config, self.impl, randomize_noise=False)
         # Setup Gs's weights same as G
         Gs.set_weights(G.get_weights())
         print('G_trainable_parameters:', np.sum([np.prod(v.get_shape().as_list()) for v in G.trainable_variables]))
@@ -79,7 +85,7 @@ class Trainer:
         return D, G, Gs
 
 
-    def create_dataset(self, dataset_path):
+    def create_dataset(self):
         """ Create dataset with one of 'ffhq'/'afhq'/'custom'."""
         @tf.function
         def parse_file(file_name):
@@ -87,9 +93,12 @@ class Trainer:
             image = tf.image.decode_png(image, channels=3)
             image = tf.image.convert_image_dtype(image, dtype=tf.float32)
             image = tf.image.resize(image, [self.resolution, self.resolution], method=tf.image.ResizeMethod.BILINEAR)
-            label_name = tf.strings.split(file_name, sep='_')[-2]
-            label = tf.math.argmax(label_name == class_names, output_type=tf.int32) if tf.size(class_names) > 0 else 0
-            return image * 2.0 - 1.0, tf.one_hot(label, depth=tf.size(class_names))
+            one_hot_label = tf.zeros(0)
+            if tf.size(class_names) > 0:
+                label_name = tf.strings.split(file_name, sep='_')[-2]   # For AFHQ dataset
+                label = tf.math.argmax(label_name == class_names, output_type=tf.int32)
+                one_hot_label = tf.one_hot(label, depth=tf.size(class_names))
+            return image * 2.0 - 1.0, one_hot_label
             
         print(f'Creating {self.dataset_name} dataset...')
         if self.dataset_name == 'ffhq':
@@ -106,10 +115,9 @@ class Trainer:
             # Custom dataset will use DiffAugemnt to train, DiffAugment from the paper
             # "Differentiable Augmentation for Data-Efficient GAN Training" In NeurIPS 2020:
             # https://github.com/mit-han-lab/data-efficient-gans
-            class_names = []
+            class_names = []    # Modify this according to the given dataset
 
-        dataset = tf.data.Dataset.list_files(dataset_path+'/*.jpg')
-        dataset = dataset.shuffle(buffer_size=len(list(dataset)))
+        dataset = tf.data.Dataset.list_files([f'{self.dataset_path}/*.png',f'{self.dataset_path}/*.jpg'], shuffle=True)
         dataset = dataset.map(parse_file, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.repeat()
         dataset = dataset.batch(self.batch_size)
@@ -139,24 +147,31 @@ class Trainer:
 
         for real_images, real_labels in self.train_dataset:
 
-            metrics = self.train_step(real_images, real_labels)
+            G_loss, D_loss = self.train_step(real_images, real_labels)
 
             cur_step = self.step.numpy()
 
             if cur_step % self.print_step == 0:
-                """ Write losses into summary and print training info. """
+                """ Print training infomation. """
+                self.G_loss_metrics(G_loss)
+                self.D_loss_metrics(D_loss)
                 self.elapsed_time.assign_add(round(time.perf_counter()-start))
                 start = time.perf_counter()
-                self.update_summary(metrics, cur_step, self.elapsed_time.numpy())
+                print(f'Step: {cur_step}, ',
+                      f'Time: {self.elapsed_time.numpy()}, ',
+                      f'G_loss: {self.G_loss_metrics.result():.2f}, ',
+                      f'D_loss: {self.D_loss_metrics.result():.2f}, ')
 
             if cur_step % self.save_step == 0:
-                """ Save ckpt and generate validation results """
+                """ Save ckpt. """
                 self.ckpt_manager.save(checkpoint_number=self.step)
-
+                """ Generate validation images. """
                 latents = tf.random.normal([1, 512])
                 labels = tf.one_hot(tf.random.uniform([1], 0, self.num_labels, dtype=tf.int32), self.num_labels) if self.num_labels > 0 else tf.zeros([1, 0])
                 images = self.Gs([latents, labels], truncation_psi=0.5, training=False)
                 imsave(images[0], f'./validate_{cur_step}.jpg')
+                """ Write summary and calculate FID/PPL. """
+                self.write_summary(cur_step)   # Calculate FID & PPL
 
             if cur_step >= self.max_steps:
                 break
@@ -174,7 +189,7 @@ class Trainer:
             """ Discriminator training step. """
             tape.watch(self.D.trainable_variables)
 
-            if self.step % self.D_reg_interval == 0:
+            if tf.math.equal(self.step % self.D_reg_interval, 0):
                 """ With r1 regulation. """
                 D_loss, D_reg = self.loss_func.get_D_loss(real_images, real_labels, compute_reg=True)
                 D_loss += tf.reduce_mean(D_reg * self.D_reg_interval)
@@ -189,7 +204,7 @@ class Trainer:
             """ Generator training step. """
             tape.watch(self.G.trainable_variables)
 
-            if self.step % self.G_reg_interval == 0: 
+            if tf.math.equal(self.step % self.D_reg_interval, 0):
                 """ With pl regulation. """
                 G_loss, G_reg = self.loss_func.get_G_loss(real_images, real_labels, compute_reg=True)
                 G_loss += tf.reduce_mean(G_reg * self.G_reg_interval)
@@ -206,26 +221,33 @@ class Trainer:
 
     def create_summary(self, checkpoint_path):
         """ Create metrics and tensorboard summary writer. """
+        fid_parameters = {'num_images':50000, 'num_labels':self.num_labels , 'batch_size':8}
+        ppl_wend_parameters =  {'num_images':50000, 'num_labels':self.num_labels, 'epsilon':1e-4, 'space':'w', 'sampling':'end', 'crop':False, 'batch_size':2}
+        self.FID_metrics = FID(**fid_parameters)
+        self.PPL_metrics = PPL(**ppl_wend_parameters)
         self.G_loss_metrics = Mean()
         self.D_loss_metrics = Mean()
-        self.summary_writer = tf.summary.create_file_writer(f'{checkpoint_path}/logs/fit')
+        import datetime
+        self.summary_writer = tf.summary.create_file_writer(
+            'logs/fit/' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
 
 
-    def update_summary(self, metrics, step, time):
-        """ Update losses with summary and print the training info """
-        G_loss, D_loss = metrics
+    def write_summary(self, step):
+        """ Write summary and calculate FID/PPL"""
 
-        self.G_loss_metrics(G_loss)
-        self.D_loss_metrics(D_loss)
-
+        if self.metric_step and step % self.metric_step == 0:
+            """ Calculate FID & PPL distance of Gs. """
+            FID_dist = self.FID_metrics(self.Gs, self.dataset_path)
+            PPL_dist = self.PPL_metrics(self.Gs)
+            print(f'FID_dist: {FID_dist:.2f}, ',
+                  f'PPL_dist: {PPL_dist:.2f}, ')
+            with self.summary_writer.as_default():
+                tf.summary.scalar('FID', FID_dist, step=step)
+                tf.summary.scalar('PPL', PPL_dist, step=step)
+                
         with self.summary_writer.as_default():
             tf.summary.scalar('G_loss', self.G_loss_metrics.result(), step=step)
             tf.summary.scalar('D_loss', self.D_loss_metrics.result(), step=step)
-
-        print(f'Step: {step}, ',
-              f'Time: {time}, ',
-              f'G_loss: {self.G_loss_metrics.result():.2f}, ',
-              f'D_loss: {self.D_loss_metrics.result():.2f}, ')
 
         self.G_loss_metrics.reset_states()
         self.D_loss_metrics.reset_states()
