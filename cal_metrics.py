@@ -22,14 +22,15 @@ def get_generator(checkpoint_path, resolution, num_labels, config, randomize_noi
 def calculate_metric(generator, num_labels, mode, dataset_path):
     fid50k_full_parameters = {'num_images':50000, 'num_labels':num_labels , 'batch_size':8}
     ppl_wend_parameters =  {'num_images':50000, 'num_labels':num_labels, 'epsilon':1e-4, 'space':'w', 'sampling':'end', 'crop':False, 'batch_size':2}
+    # ppl_wfull_parameters = {'num_images':50000, 'num_labels':num_labels, 'epsilon':1e-4, 'space':'w', 'sampling':'full','crop':True,  'batch_size':2}
 
     if mode == 'fid':
         assert os.path.exists(dataset_path), 'Error: Dataset does not exist.'
-        fid = FID(**fid50k_full_parameters)
-        dist = fid.evaluate(generator, real_dir=dataset_path)
+        FID_metric = FID(**fid50k_full_parameters)
+        dist = FID_metric(generator, real_dir=dataset_path)
     else: # mode == 'ppl'
-        ppl = PPL(**ppl_wend_parameters)
-        dist = ppl.evaluate(generator)
+        PPL_metric = PPL(**ppl_wend_parameters)
+        dist = PPL_metric(generator)
     return dist
 
 

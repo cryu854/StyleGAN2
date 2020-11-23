@@ -41,7 +41,7 @@ class FID:
         feats = self.inception_v3(images)
         return feats
 
-    def evaluate(self, Gs, real_dir=None):
+    def __call__(self, Gs, real_dir=None):
         cache_file = f'{real_dir}/FID-{self.num_images}-cache.npy'
 
         # Calculate mean and covariance statistics for reals.
@@ -55,7 +55,7 @@ class FID:
             real_dataset = self._create_dataset(real_dir)
             feats = []
             for reals in real_dataset.take(self.num_images//self.batch_size):
-                feats.append(self.inception_v3(reals).numpy())
+                feats.append(self.inception_v3(reals))
             feats = np.concatenate(feats, axis=0)
             real_mu = np.mean(feats, axis=0)
             real_sigma = np.cov(feats, rowvar=False)
@@ -67,7 +67,7 @@ class FID:
         print('Start evaluating fake statistics...')
         feats = []
         for _ in range(0, self.num_images, self.batch_size):
-            feats.append(self._evaluate_fakes_step(Gs).numpy())
+            feats.append(self._evaluate_fakes_step(Gs))
         feats = np.concatenate(feats, axis=0)
         fake_mu = np.mean(feats, axis=0)
         fake_sigma = np.cov(feats, rowvar=False)
@@ -156,12 +156,12 @@ class PPL:
         dist = self.lpips([img_e0, img_e1]) * (1 / self.epsilon**2)
         return dist
 
-    def evaluate(self, Gs):
+    def __call__(self, Gs):
         # Sampling loop.
         all_distances = []
         print('Start evaluating PPL...')
         for _ in range(0, self.num_images, self.batch_size):
-            dist = self._evaluate_step(Gs).numpy()
+            dist = self._evaluate_step(Gs)
             all_distances.append(dist)
         all_distances = np.concatenate(all_distances, axis=0)
 
@@ -171,6 +171,7 @@ class PPL:
         filtered_distances = np.extract(np.logical_and(lo <= all_distances, all_distances <= hi), all_distances)
         dist = np.mean(filtered_distances)
         return dist
+
 
 # Learned perceptual metric
 class LPIPS(Model):
@@ -202,9 +203,6 @@ class LPIPS(Model):
     def _spatial_average(self, inputs, keepdims=True):
         return tf.reduce_mean(inputs, axis=[1,2], keepdims=keepdims)
 
-    def _upsample(self, inputs, out_HW=(64,64)): # assumes scale factor is same for H and W
-        return UpSampling2D(size=out_HW, mode='bilinear')(inputs)
-
     def call(self, inputs, training=None):
         """ Expected inputs range between [1, -1] """
         imgs1, imgs2 = inputs
@@ -221,12 +219,12 @@ class LPIPS(Model):
 
         if(self.lpips):
             if(self.spatial):
-                res = [self._upsample(self.lin_layers[kk](diffs[kk]), out_HW=imgs1.shape[1:-1]) for kk in range(self.L)]
+                res = [tf.image.resize(self.lin_layers[kk](diffs[kk]), size=imgs1.shape[1:-1], method='bilinear') for kk in range(self.L)]
             else:
                 res = [self._spatial_average(self.lin_layers[kk](diffs[kk]), keepdims=True) for kk in range(self.L)]
         else:
             if(self.spatial):
-                res = [self._upsample(diffs[kk].sum(dim=1,keepdims=True), out_HW=imgs1.shape[1:-1]) for kk in range(self.L)]
+                res = [tf.image.resize(diffs[kk].sum(dim=1,keepdims=True), size=imgs1.shape[1:-1], method='bilinear') for kk in range(self.L)]
             else:
                 res = [self._spatial_average(diffs[kk].sum(dim=1,keepdims=True), keepdims=True) for kk in range(self.L)]
 
