@@ -15,27 +15,38 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='StyleGAN2')
     parser.add_argument('command',help="'train' or 'inference'", type=str, choices=['train', 'inference'])
-    parser.add_argument('--impl', help="(Faster)Custom op use:'cuda'; (Slower)Tensorflow op use:'ref'", type=str, default='ref', choices=['ref','cuda'])
+    # Common
+    parser.add_argument('--res', help='Resolution of image', type=int, default=1024)
     parser.add_argument('--config', help="Model's config be one of: 'e', 'f'", type=str, default='f')
+    parser.add_argument('--ckpt', help='Checkpoints/Weights directory', type=str, default='./checkpoint')
+    # Training
     parser.add_argument('--dataset_name', help="Specific dataset be one of: 'ffhq', 'afhq', 'custom'", type=str, default='afhq', choices=['ffhq','afhq','custom'])
     parser.add_argument('--dataset_path', help='Dataset directory', type=str, default='./../../datasets/afhq/train_labels')
     parser.add_argument('--batch_size', help='Training batch size', type=int, default=4)
-    parser.add_argument('--res', help='Resolution of image', type=int, default=1024)
     parser.add_argument('--total_img', help='Training length of images', type=int, default=25000000)
-    parser.add_argument('--ckpt', help='Checkpoints/Weights directory', type=str, default='./checkpoint')
-    parser.add_argument('--num_labels', help='Number of labels', type=int, default=0)
+    parser.add_argument('--impl', help="(Faster)Custom op use:'cuda'; (Slower)Tensorflow op use:'ref'", type=str, default='ref', choices=['ref','cuda'])
+    # Inference
     parser.add_argument('--label', help='Inference label', type=int, default=0)
+    parser.add_argument('--num_labels', help='Number of labels', type=int, default=0)
     parser.add_argument('--truncation_psi', help='Inference truncation psi', type=float, default=0.5)
     parser.add_argument('--mode', help="Inference mode be one of: 'example', 'gif', 'mixing'", type=str, default='example', choices=['example','gif','mixing'])
+    # Misc
+    parser.add_argument('--save_step', help='Steps to save checkpoint and write summary', type=int, default=5000)
+    parser.add_argument('--print_step', help="Steps to print training losses", type=int, default=100)
+    parser.add_argument('--metric_step', help="Steps to calculate FID/PPL metrics(A multiple of save_step)", type=int, default=0)
+
     args = parser.parse_args()
 
 
     # Validate arguments
     if args.command == 'train':
         assert os.path.exists(args.dataset_path), 'Error: Dataset does not exist.'
-        assert args.batch_size > 0
         assert args.res >= 4
+        assert args.batch_size > 0
         assert args.total_img > 0
+        assert args.save_step > 0
+        assert args.print_step > 0
+        assert args.metric_step % args.save_step == 0 if args.metric_step > 0 else args.metric_step == 0
 
         parameters = {
             'resolution' : args.res,
@@ -45,7 +56,10 @@ def main():
             'dataset_name' : args.dataset_name,
             'dataset_path' : args.dataset_path,
             'checkpoint_path' : args.ckpt,
-            'impl' : args.impl
+            'impl' : args.impl,
+            'save_step': args.save_step,
+            'print_step': args.print_step,
+            'metric_step': args.metric_step,
             }
 
         trainer = Trainer(**parameters)
