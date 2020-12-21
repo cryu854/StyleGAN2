@@ -25,25 +25,35 @@ class Inferencer:
         self.ckpt = tf.train.Checkpoint(generator_clone=self.Gs)
         print(f'Loading network from {checkpoint_path}...')
         self.ckpt.restore(tf.train.latest_checkpoint(checkpoint_path)).expect_partial()
-  
+        tf.config.optimizer.set_experimental_options({"auto_mixed_precision": True})    # Enable mixed precision
+
+
+    def _get_labels(self, label, length):
+        if self.num_labels > 0: # Contain labels
+            labels_indice = [label]*length if label is not None else tf.random.uniform([length], 0, self.num_labels, dtype=tf.int32)
+            labels = tf.one_hot(labels_indice, self.num_labels)
+        else:  
+            labels_indice = [0]*length
+            labels = tf.zeros([length, 0], tf.float32)
+
+        return labels, labels_indice
+
 
     def genetate_example(self, num_examples, batch_size=1, label=None):
         create_dir(f'{self.result_path}/example')
         print('Generating images...')
         for begin in range(0, num_examples, batch_size):
             latents = tf.random.normal([batch_size, 512])
-            labels_indice = [label]*batch_size if label is not None else tf.random.uniform([batch_size], 0, self.num_labels, dtype=tf.int32)
-            labels = tf.one_hot(labels_indice, self.num_labels) if self.num_labels > 0 else tf.zeros([batch_size, 0], tf.float32)
+            labels, labels_indice = self._get_labels(label, batch_size)
             images = self.Gs([latents, labels], self.truncation_psi, training=False)
-            for idx, (image, label) in enumerate(zip(images, labels_indice)):
-                imsave(image, f'{self.result_path}/example/{begin+idx}_label-{label}.jpg')
+            for idx, (image, indice) in enumerate(zip(images, labels_indice)):
+                imsave(image, f'{self.result_path}/example/{begin+idx}_label-{indice}.jpg')
 
 
     def style_mixing_example(self, row_seeds, col_seeds, label=None, col_styles='0-6'):
         create_dir(f'{self.result_path}/mixing')
         all_seeds = list(set(row_seeds + col_seeds))
-        all_labels_indice = [label]*len(all_seeds) if label is not None else tf.random.uniform([len(all_seeds)], 0, self.num_labels, dtype=tf.int32)
-        all_labels = tf.one_hot(all_labels_indice, self.num_labels) if self.num_labels > 0 else tf.zeros([len(all_seeds), 0], tf.float32)
+        all_labels, all_labels_indices = self._get_labels(label, len(all_seeds))
         all_z = tf.stack([tf.random.normal([512], seed=seed) for seed in all_seeds])    # [minibatch, component]
 
         print('Generating images...')
@@ -88,8 +98,8 @@ class Inferencer:
         output_seq = []
         batch_size = num_rows * num_cols
         latents = [tf.random.normal([batch_size, 512]) for _ in range(num_phases)]
-        labels_indice = [label]*batch_size if label is not None else tf.random.uniform([batch_size], 0, self.num_labels, dtype=tf.int32)
-        labels = [tf.one_hot(labels_indice, self.num_labels) if self.num_labels > 0 else tf.zeros([batch_size, 0], tf.float32) for _ in range(num_phases)]
+        labels, labels_indice = self._get_labels(label, batch_size)
+        labels = tf.repeat(tf.expand_dims(labels, axis=0), repeats=num_phases, axis=0)
 
         def to_image_grid(outputs):
             outputs = (outputs + 1) * 127.5

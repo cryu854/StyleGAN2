@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--total_img', help='Training length of images', type=int, default=25000000)
     parser.add_argument('--impl', help="(Faster)Custom op use:'cuda'; (Slower)Tensorflow op use:'ref'", type=str, default='ref', choices=['ref','cuda'])
     # Inference
-    parser.add_argument('--label', help='Inference label', type=int, default=0)
+    parser.add_argument('--label', help='Inference label', type=int, default=None)
     parser.add_argument('--num_labels', help='Number of labels', type=int, default=0)
     parser.add_argument('--truncation_psi', help='Inference truncation psi', type=float, default=0.5)
     parser.add_argument('--mode', help="Inference mode be one of: 'example', 'gif', 'mixing'", type=str, default='example', choices=['example','gif','mixing'])
@@ -71,7 +71,6 @@ def main():
         assert 0.0 <= args.truncation_psi <= 1.0, 'Error: Inference truncation_psi needs to be between 0 and 1.'
         assert args.res >= 4
         assert args.num_labels >= 0
-        assert 0 <= args.label <= max(0, args.num_labels-1)
 
         parameters = {
             'resolution' : args.res,

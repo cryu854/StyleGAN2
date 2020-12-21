@@ -205,7 +205,7 @@ class generator(Model):
         truncated_w = self.w_avg + (w_latents - self.w_avg) * layer_psi  
         return truncated_w
 
-
+    @tf.function
     def call(self, inputs, truncation_psi=0.5, return_latents=False, training=None):
         latents_in, labels_in = inputs
 

@@ -11,6 +11,7 @@ custom
 ffhq
 afhq
 logs
+abandon
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
