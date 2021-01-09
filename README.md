@@ -80,7 +80,7 @@ You will need the following to run the above:
 - Python 3, Pillow 7.0.0, Numpy 1.18
 
 
-## Attributions/Thanks
+## Acknowledgements
 - Most of the code/CUDA are based on the [official implementation](https://github.com/NVlabs/stylegan2).
 - The code of modules/DiffAugment_tf.py is from [data-efficient-gans](https://github.com/mit-han-lab/data-efficient-gans).
 - The AFHQ training dataset is from [stargan-v2](https://github.com/clovaai/stargan-v2).
